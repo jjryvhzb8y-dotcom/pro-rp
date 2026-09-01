@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Панель Оповещения ПВО — РП Страны</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #ff4d4d;
+            text-shadow: 0 0 10px rgba(255, 77, 77, 0.4);
+            margin: 5px 0 2px 0;
+            text-align: center;
+            font-size: 22px;
+        }
+
+        .online-counter {
+            background: #2980b9;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            box-shadow: 0 0 10px rgba(41, 128, 185, 0.5);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        /* Кнопка авторизации админа */
+        .btn-admin-auth {
+            background: #34495e;
+            color: #bdc3c7;
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        /* Панель управления кнопками */
+        .controls-panel {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            display: none;
+        }
+
+        label {
+            display: block;
+            margin-top: 5px;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #ccc;
+            font-size: 14px;
+        }
+
+        select, .controls-panel button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: none;
+            font-size: 15px;
+            box-sizing: border-box;
+            font-weight: bold;
+        }
+
+        select {
+            background: #2a2a2a;
+            color: white;
+            border: 1px solid #444;
+        }
+
+        .btn-safe { background: #2ecc71; color: white; }
+        .btn-warn { background: #f1c40f; color: black; }
+        .btn-danger { background: #e67e22; color: white; }
+        .btn-alarm { background: #e74c3c; color: white; }
+        .btn-rocket { background: #9b59b6; color: white; }
+        .btn-logout { background: #7f8c8d !important; color: white !important; font-size: 12px !important; padding: 6px !important; margin-top: 5px; }
+
+        .status-board {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .region-card {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 6px solid #2ecc71;
+            transition: all 0.3s ease;
+        }
+
+        .region-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: #2ecc71;
+        }
+
+        .region-status {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2ecc71;
+        }
+
+        .c-safe { border-left-color: #2ecc71; }
+        .c-safe .region-name, .c-safe .region-status { color: #2ecc71; }
+
+        .c-warn { border-left-color: #f1c40f; }
+        .c-warn .region-name, .c-warn .region-status { color: #f1c40f; }
+
+        .c-danger { border-left-color: #e67e22; }
+        .c-danger .region-name, .c-danger .region-status { color: #e67e22; }
+
+        .c-alarm { border-left-color: #e74c3c; }
+        .c-alarm .region-name, .c-alarm .region-status { color: #e74c3c; font-weight: 900; }
+
+        .c-rocket { border-left-color: #9b59b6; animation: blink-border 0.6s infinite alternate; }
+        .c-rocket .region-name, .c-rocket .region-status { color: #9b59b6; animation: blink-text 0.6s infinite alternate; }
+
+        @keyframes blink-border { 0% { border-left-color: #9b59b6; } 100% { border-left-color: #ff4d4d; } }
+        @keyframes blink-text { 0% { color: #9b59b6; } 100% { color: #ff4d4d; } }
+    </style>
+    
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
+</head>
+<body>
+
+    <h1>🚨 ИНФОРМАТОР ОПАСНОСТИ БПЛА</h1>
+    
+    <div class="online-counter">
+        <span>👥 На сайте онлайн:</span>
+        <span id="onlineCount">1</span>
+    </div>
+
+    <!-- Кнопка входа -->
+    <button id="authBtn" class="btn-admin-auth" onclick="let p=prompt('Секретный ключ:'); if(p==='икирия'){ localStorage.setItem('admin_session','true'); document.getElementById('adminPanel').style.display='block'; this.style.display='none'; alert('Доступ открыт!'); } else if(p!==null){ alert('Неверно!'); }">⚙️ Вход для Администратора</button>
+
+    <div class="main-container">
+
+        <!-- Пульт управления -->
+        <div id="adminPanel" class="controls-panel">
+            <label for="regionSelect">Выберите область РП:</label>
+            <select id="regionSelect">
+                <option value="north-merror">Северомеррорская Область</option>
+                <option value="south-merror">Южно-Меррорская Область</option>
+                <option value="north-rockford">Северно-Рокфордовская Республика</option>
+                <option value="seveford-rep">Севефордовская республика</option>
+                <option value="rockford-main">Рокфордовская область</option>
+                <option value="south-rockford">Южно-Рокфордовская область</option>
+                <option value="philippia">Филиппийская область</option>
+                <option value="biram">Бирам</option>
+                <option value="burnia">Бурния</option>
+                <option value="gernia">Герния</option>
+                <option value="reykjavia">Рейкьявия</option>
+                <option value="nordvelia">Нордвелия</option>
+                <option value="saint">Саинтская область</option>
+                <option value="tokio">Токийская область</option>
+                <option value="pertov">Пертовская область</option>
+                <option value="larnaka">Ларнакавская область</option>
+                <option value="nicosia">Никосийский район</option>
+                <option value="skoperos">Скоперос</option>
+                <option value="military">Воинская область</option>
+                <option value="desert">Пустынная область</option>
+                <option value="izorilani">Изориланская область</option>
+                <option value="pafos">Пафоская область</option>
+            </select>
+
+            <label>Сменить статус режима:</label>
+            <button class="btn-safe" onclick="changeMode('safe', 'Все спокойно 🟢')">Все спокойно</button>
+            <button class="btn-warn" onclick="changeMode('warn', 'Внимание по БПЛА 🟡')">Внимание по БПЛА</button>
+            <button class="btn-danger" onclick="changeMode('danger', 'Опасность по БПЛА 🟠')">Опасность по БПЛА</button>
+            <button class="btn-alarm" onclick="changeMode('alarm', 'Тревога по БПЛА 🔴')">Тревога по БПЛА</button>
+            <button class="btn-rocket" onclick="changeMode('rocket', 'РАКЕТНАЯ ОПАСНОСТЬ ⚡')">Ракетная опасность</button>
+            <button class="btn-logout" onclick="localStorage.removeItem('admin_session'); document.getElementById('adminPanel').style.display='none'; document.getElementById('authBtn').style.display='block'; alert('Вы вышли из панели.');">🔒 Выйти из панели</button>
+        </div>
+
+        <!-- Текстовое табло со всеми областями -->
+        <div class="status-board">
+            <div id="card-north-merror" class="region-card c-safe">
+                <div class="region-name">Северомеррорская Область</div>
+                <div class="region-status">Все спокойно 🟢</div>
+            </div>
+            <div id="card-south-merror" class="region-card c-safe">
+                <div class="region-name">Южно-Меррорская Область</div>
+                <div class="region-status">Все спокойно 🟢</div>
+            </div>
+            <div id="card-north-rockford" class="region-card c-safe">
+                <div class="region-name">Северно-Рокфордовская Республика</div>
+                <div class="region-status">Все спокойно 🟢</div>
+            </div>
+            <div id="card-seveford-rep" class="region-card c-safe">
+                <div class="region-name">Севефордовская республика</div>
+                <div class="region-status">Все спокойно 🟢</div>
+            </div>
+            <div id="card-rockford-main" class="region-card c-safe">
+                <div class="region-name">Рокфордовская область</div>
+                <div class="region-status">Все спокойно 🟢</div>
+            </div>
+            <div id="card-south-rockford" class="region-card c-safe">
+                <div class="region-name">Южно-Рокфордовская область</div>
+                <div class="region-status">Все спокойно 🟢</div>
+            </div>
+            <div id="card-philippia" class="region-card c-safe">
+                <div class="region-name">Филиппийская область</div>
+                <div class="region-status">Все спокойно 🟢</div>
+            </div>
+            <div id="card-biram" class="region-card c-safe">
+                <div class="region-name">Бирам</div>
+                <div class="region-status">Все спокойно 🟢</div>
+            </div>
+            <div id="card-burnia" class="region-card c-safe">
+                <div class="region-name">Бурния</div>
+                <div class="region-status">Все спокойно 🟢</div>
+            </div>
+<div id="card-gernia" class="region-card c-safe">
+    <div class="region-name">Герния</div>
+    <div class="region-status">Все спокойно 🟢</div>
+</div>
+<div id="card-reykjavia" class="region-card c-safe">
+    <div class="region-name">Рейкьявия</div>
+    <div class="region-status">Все спокойно 🟢</div>
+</div>
+<div id="card-nordvelia" class="region-card c-safe">
+    <div class="region-name">Нордвелия</div>
+    <div class="region-status">Все спокойно 🟢</div>
+</div>
+<div id="card-saint" class="region-card c-safe">
+    <div class="region-name">Саинтская область</div>
+    <div class="region-status">Все спокойно 🟢</div>
+</div>
+<div id="card-tokio" class="region-card c-safe">
+    <div class="region-name">Токийская область</div>
+    <div class="region-status">Все спокойно 🟢</div>
+</div>
+<div id="card-pertov" class="region-card c-safe">
+    <div class="region-name">Пертовская область</div>
+    <div class="region-status">Все спокойно 🟢</div>
+</div>
+<div id="card-larnaka" class="region-card c-safe">
+    <div class="region-name">Ларнакавская область</div>
+    <div class="region-status">Все спокойно 🟢</div>
+</div>
+<div id="card-nicosia" class="region-card c-safe">
+    <div class="region-name">Никосийский район</div>
+    <div class="region-status">Все спокойно 🟢</div>
+</div>
+<div id="card-skoperos" class="region-card c-safe">
+    <div class="region-name">Скоперос</div>
+    <div class="region-status">Все спокойно 🟢</div>
+</div>
+<div id="card-military" class="region-card c-safe">
+    <div class="region-name">Воинская область</div>
+    <div class="region-status">Все спокойно 🟢</div>
+</div>
+<div id="card-desert" class="region-card c-safe">
+    <div class="region-name">Пустынная область</div>
+    <div class="region-status">Все спокойно 🟢</div>
+</div>
+<div id="card-izorilani" class="region-card c-safe">
+    <div class="region-name">Изориланская область</div>
+    <div class="region-status">Все спокойно 🟢</div>
+</div>
+<div id="card-pafos" class="region-card c-safe">
+    <div class="region-name">Пафоская область</div>
+    <div class="region-status">Все спокойно 🟢</div>
+</div>
+
+    </div>
+
+<script>
+    let statusCache = {};
+    const dbUrl = "https://firebasedatabase.app";
+    
+    // Генерируем случайный ID для каждого зашедшего пользователя, чтобы база их различала
+    const userId = 'user_' + Math.random().toString(36).substring(2, 9);
+    const onlineUserUrl = "https://firebasedatabase.app" + userId + ".json";
+    const onlineListUrl = "https://firebasedatabase.app";
+
+    // Функция отправки сигнала «я в сети»
+    function sendPing() {
+        fetch(onlineUserUrl, {
+            method: 'PUT',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ timestamp: Date.now() })
+        }).catch(e => {});
+    }
+
+    // 1. ЗАГРУЗКА ДАННЫХ ПРИ ВХОДЕ И СИНХРОНИЗАЦИЯ
+    window.onload = function() {
+        if (localStorage.getItem('admin_session') === 'true') {
+            const adminPanel = document.getElementById('adminPanel');
+            const authBtn = document.getElementById('authBtn');
+            if (adminPanel) adminPanel.style.display = 'block';
+            if (authBtn) authBtn.style.display = 'none';
+        }
+
+        // ШАГ А: Загружаем локальный кэш
+        const localData = localStorage.getItem('rp_text_status_cache');
+        if (localData) {
+            statusCache = JSON.parse(localData);
+            applyStatuses(statusCache);
+        }
+
+        // Отправляем первый сигнал онлайна
+        sendPing();
+
+        // ШАГ Б: Загружаем статусы и счетчик онлайна с сервера
+        updateDataFromServer();
+
+        // Каждые 5 секунд проверяем обновления статусов, онлайна и шлем пинг
+        setInterval(function() {
+            sendPing();
+            updateDataFromServer();
+        }, 5000);
+    };
+
+    // Функция обновления статусов и подсчета живого онлайна
+    function updateDataFromServer() {
+        // Получаем статусы регионов
+        fetch(dbUrl)
+            .then(res => res.json())
+            .then(serverData => {
+                if (serverData) {
+                    statusCache = serverData;
+                    localStorage.setItem('rp_text_status_cache', JSON.stringify(statusCache));
+                    applyStatuses(statusCache);
+                }
+            }).catch(e => {});
+
+        // Получаем список пользователей онлайн
+        fetch(onlineListUrl)
+            .then(res => res.json())
+            .then(usersData => {
+                const onlineCountElem = document.getElementById('onlineCount');
+                if (onlineCountElem) {
+                    if (usersData) {
+                        const now = Date.now();
+                        let count = 0;
+                        
+                        // Считаем только тех, кто присылал сигнал последние 15 секунд (остальных считаем вышедшими)
+                        Object.keys(usersData).forEach(key => {
+                            if (now - usersData[key].timestamp < 15000) {
+                                count++;
+                            }
+                        });
+                        
+                        onlineCountElem.innerText = count > 0 ? count : "1";
+                    } else {
+                        onlineCountElem.innerText = "1";
+                    }
+                }
+            }).catch(e => {
+                // Если сеть упала, просто пишем 1
+                const onlineCountElem = document.getElementById('onlineCount');
+                if (onlineCountElem) onlineCountElem.innerText = "1";
+            });
+    }
+
+    function applyStatuses(dataObj) {
+        Object.keys(dataObj).forEach(id => {
+            const card = document.getElementById('card-' + id);
+            if (card) {
+                card.className = 'region-card c-' + dataObj[id].mode;
+                const statusTextElem = card.querySelector('.region-status');
+                if (statusTextElem) {
+                    statusTextElem.innerText = dataObj[id].text;
+                }
+            }
+        });
+    }
+
+    // 2. ФУНКЦИЯ КЛИКА АДМИНА
+    function changeMode(modeName, modeText) {
+        const id = document.getElementById('regionSelect').value;
+        const card = document.getElementById('card-' + id);
+
+        if (card) {
+            card.className = 'region-card c-' + modeName;
+            const statusTextElem = card.querySelector('.region-status');
+            if (statusTextElem) {
+                statusTextElem.innerText = modeText;
+            }
+
+            statusCache[id] = { mode: modeName, text: modeText };
+            localStorage.setItem('rp_text_status_cache', JSON.stringify(statusCache));
+
+                        const saveUrl = "https://firebasedatabase.app" + id + ".json";
+
+            fetch(saveUrl, {
+                method: 'PUT',
+                mode: 'cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode: modeName, text: modeText })
+            }).catch(err => console.log("Сохранено локально"));
+        }
+    }
+</script>
+</body>
+</html>
