@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PVO Informator</title>
+    <style>
+        :root {
+            --bg-color: #0a0e17;
+            --card-bg: #161e2f;
+            --text-color: #e0e6ed;
+            --accent-color: #00bcd4;
+            --status-green: #00c853;
+            --status-yellow: #ffab00;
+            --status-orange: #ff6d00;
+            --status-red: #d50000;
+            --status-purple: #aa00ff;
+            --status-gray: #546e7a;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header-stats {
+            border: 1px solid var(--accent-color);
+            border-radius: 20px;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: var(--accent-color);
+            background-color: rgba(0, 188, 212, 0.05);
+        }
+
+        .header-stats .online-icon {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 188, 212, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(0, 188, 212, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 188, 212, 0); }
+        }
+
+        .alert-header {
+            color: #ff5252;
+            font-weight: bold;
+            margin-bottom: 20px;
+            font-size: 16px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(213, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .info-card, .admin-card {
+            background-color: var(--card-bg);
+            border-radius: 15px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            box-sizing: border-box;
+        }
+
+        .card-title {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #90a4ae;
+        }
+
+        .area-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #263238;
+        }
+
+        .area-item:last-child { border-bottom: none; }
+        .area-name { font-size: 15px; font-weight: 500; }
+        .area-status { display: flex; align-items: center; font-size: 13px; font-weight: bold;}
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; margin-left: 8px; display: inline-block; }
+
+        .dot-green { background-color: var(--status-green); }
+        .dot-yellow { background-color: var(--status-yellow); }
+        .dot-orange { background-color: var(--status-orange); }
+        .dot-red { background-color: var(--status-red); }
+        .dot-purple { background-color: var(--status-purple); }
+        .dot-gray { background-color: var(--status-gray); }
+
+        #admin-panel { display: none; }
+
+        .select-area {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            background-color: #0d1117;
+            color: var(--text-color);
+            border: 1px solid #37474f;
+            font-size: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+
+        .admin-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .admin-btn {
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .admin-btn:hover { opacity: 0.9; }
+        .admin-btn.selected { border: 2px solid white; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+
+        .btn-green { background-color: var(--status-green); }
+        .btn-yellow { background-color: var(--status-yellow); color: #263238; }
+        .btn-orange { background-color: var(--status-orange); }
+        .btn-red { background-color: var(--status-red); }
+        .btn-purple { background-color: var(--status-purple); }
+
+        .btn-apply {
+            background-color: var(--status-green);
+            color: white;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .btn-all-calm { background-color: var(--status-gray); justify-content: center; margin-top: 10px; }
+        .btn-logout { background-color: #37474f; color: #cfd8dc; justify-content: center; margin-top: 10px; }
+
+        #admin-status-message {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+            text-align: center;
+        }
+        .msg-success { background-color: rgba(0, 200, 83, 0.2); color: #69f0ae; border: 1px solid #00c853; }
+        .msg-error { background-color: rgba(213, 0, 0, 0.2); color: #ff5252; border: 1px solid #d50000; }
+
+        #login-panel input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            background-color: #0d1117;
+            color: var(--text-color);
+            border: 1px solid #37474f;
+            font-size: 15px;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-stats">
+        <span class="online-icon"></span>
+        👥 На сайте онлайн: <span id="online-count">1</span>
+    </div>
+
+    <div class="alert-header">🔴 Информация опасностей</div>
+
+    <!-- Список областей (для всех) -->
+    <div class="info-card">
+        <div class="card-title">Статус регионов:</div>
+        <div id="areas-container-public"></div>
+    </div>
+
+    <!-- Форма входа -->
+    <div class="admin-card" id="login-panel">
+        <div class="card-title">Вход для администратора</div>
+        <input type="password" id="admin-password" placeholder="Введите пароль администратора">
+        <button class="admin-btn" style="background-color: var(--accent-color); justify-content: center;" onclick="adminLogin()">Войти</button>
+        <div id="login-error" style="color: var(--status-red); margin-top: 10px; font-size: 13px; display: none;">Неверно</div>
+    </div>
+
+    <!-- Панель администратора -->
+    <div class="admin-card" id="admin-panel">
+        <div class="card-title" style="display: flex; justify-content: space-between;">
+            <span>Панель админа</span>
+            <span style="color: var(--status-green);">● Онлайн</span>
+        </div>
+
+        <select id="area-select" class="select-area" onchange="onAreaChange()"></select>
+
+        <div class="admin-buttons">
+            <button class="admin-btn btn-green" onclick="selectStatus('green')">Все спокойно <span class="status-dot dot-green" style="background:white"></span></button>
+            <button class="admin-btn btn-yellow" onclick="selectStatus('yellow')">Внимание по БПЛА <span class="status-dot dot-yellow" style="background:#263238"></span></button>
+            <button class="admin-btn btn-orange" onclick="selectStatus('orange')">Опасность по БПЛА <span class="status-dot dot-orange" style="background:white"></span></button>
+            <button class="admin-btn btn-red" onclick="selectStatus('red')">Тревога по БПЛА <span class="status-dot dot-red" style="background:white"></span></button>
+            <button class="admin-btn btn-purple" onclick="selectStatus('purple')">Ракетная опасность <span class="status-dot dot-purple" style="background:white"></span></button>
+        </div>
+
+        <div id="admin-status-message"></div>
+
+        <button class="admin-btn btn-apply" onclick="applyChanges()">Применить изменения</button>
+        <button class="admin-btn btn-all-calm" onclick="setAllCalm()">⚡ Сделать всё «Все спокойно»</button>
+        <button class="admin-btn btn-logout" onclick="adminLogout()">🔒 Выйти из панели</button>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+
+    <script>
+        // ВСТАВЬ СВОЙ КОНФИГ FIREBASE ЗДЕСЬ:
+        const firebaseConfig = {
+            databaseURL: "https://pvo-informator-default-rtdb.europe-west1.firebasedatabase.app"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const areas = [
+            "Северомеррорская Область", "Южно-Меррорская Область", "Северно-Рокфордовская Республика",
+            "Севефордовская республика", "Рокфордовская область", "Южно-Рокфордовская область",
+            "Филиппийская область", "Бирам", "Бурния", "Герния", "Рейкьявия", "Нордвелия",
+            "Саинтская область", "Токийская область", "Пертовская область", "Ларнакавская область",
+            "Никосийский район", "Скоперос", "Воинская область", "Пустынная область",
+            "Изориланская область", "Пафоская область"
+        ];
+
+        const statusData = {
+            green: { text: "Все спокойно", class: "dot-green" },
+            yellow: { text: "Внимание по БПЛА", class: "dot-yellow" },
+            orange: { text: "Опасность по БПЛА", class: "dot-orange" },
+            red: { text: "Тревога по БПЛА", class: "dot-red" },
+            purple: { text: "Ракетная опасность", class: "dot-purple" }
+        };
+
+        let selectedStatusKey = "green";
+
+        // Инициализация списков на странице
+        function initUI() {
+            const publicContainer = document.getElementById("areas-container-public");
+            const selectContainer = document.getElementById("area-select");
+            
+            publicContainer.innerHTML = "";
+            selectContainer.innerHTML = "";
+
+            areas.forEach((area, index) => {
+                // Публичный список
+                const div = document.createElement("div");
+                div.className = "area-item";
+                div.innerHTML = `<span class="area-name">${area}</span><span class="area-status" id="pub-status-${index}">Загрузка... <span class="status-dot dot-gray"></span></span>`;
+                publicContainer.appendChild(div);
+
+                // Селект в админке
+                const option = document.createElement("option");
+                option.value = index;
+                option.textContent = area;
+                selectContainer.appendChild(option);
+            });
+        }
+
+        // Авторизация админа
+        function adminLogin() {
+            const pass = document.getElementById("admin-password").value;
+            const err = document.getElementById("login-error");
+            if (pass === "1717") {
+                err.style.display = "none";
+                document.getElementById("login-panel").style.display = "none";
+                document.getElementById("admin-panel").style.display = "block";
+            } else {
+                err.style.display = "block";
+            }
+        }
+
+        function adminLogout() {
+            document.getElementById("admin-panel").style.display = "none";
+            document.getElementById("login-panel").style.display = "block";
+            document.getElementById("admin-password").value = "";
+        }
+
+        function selectStatus(statusKey) {
+            selectedStatusKey = statusKey;
+            document.querySelectorAll(".admin-buttons .admin-btn").forEach(btn => btn.classList.remove("selected"));
+            event.currentTarget.classList.add("selected");
+        }
+
+        // Применить статус к выбранной области
+        function applyChanges() {
+            const index = document.getElementById("area-select").value;
+            const msgBox = document.getElementById("admin-status-message");
+
+            db.ref('statuses/' + index).set(selectedStatusKey)
+                .then(() => {
+                    showMsg("Успешно синхронизировано!", "msg-success");
+                })
+                .catch((error) => {
+                    showMsg("Ошибка: " + error.message, "msg-error");
+                });
+        }
+
+        // Кнопка: сделать все области спокойными
+        function setAllCalm() {
+            if (!confirm("Точно сделать все области спокойными?")) return;
+            
+            let updates = {};
+            areas.forEach((_, index) => {
+                updates['statuses/' + index] = "green";
+            });
+
+            db.ref().update(updates)
+                .then(() => {
+                    showMsg("Все области переведены в режим 'Все спокойно'!", "msg-success");
+                })
+                .catch((error) => {
+                    showMsg("Ошибка: " + error.message, "msg-error");
+                });
+        }
+
+        function showMsg(text, className) {
+            const box = document.getElementById("admin-status-message");
+            box.textContent = text;
+            box.className = className;
+            box.style.display = "block";
+            setTimeout(() => { box.style.display = "none"; }, 4000);
+        }
+
+        // Реальный онлайн счетчик через Firebase Presence
+        function initOnlineCounter() {
+            const onlineRef = db.ref(".info/connected");
+            const countRef = db.ref("online_users");
+
+            onlineRef.on("value", (snap) => {
+                if (snap.val() === true) {
+                    const myUserRef = countRef.push();
+                    myUserRef.onDisconnect().remove();
+                    myUserRef.set(true);
+                }
+            });
+
+            countRef.on("value", (snap) => {
+                const count = snap.numChildren();
+                document.getElementById("online-count").textContent = count > 0 ? count : 1;
+            });
+        }
+
+        // Слушаем изменения статусов в реальном времени для всех игроков
+        function listenStatuses() {
+            db.ref('statuses').on("value", (snapshot) => {
+                const data = snapshot.val() || {};
+                areas.forEach((_, index) => {
+                    const statusKey = data[index] || "green";
+                    const info = statusData[statusKey];
+                    const target = document.getElementById(`pub-status-${index}`);
+                    if (target) {
+                        target.innerHTML = `${info.text} <span class="status-dot ${info.class}"></span>`;
+                    }
+                });
+            });
+        }
+
+        // Запуск
+        initUI();
+        initOnlineCounter();
+        listenStatuses();
+    </script>
+</body>
+</html>
