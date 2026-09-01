@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Информатор опасности БПЛА</title>
+    <style>
+        body { background-color: #0b0f19; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; padding-bottom: 40px; }
+        .header { text-align: center; padding: 20px 10px 10px 10px; }
+        .header h1 { font-size: 20px; color: #ff3b30; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 12px 0; font-weight: bold; }
+        .online-badge { background: rgba(52, 152, 219, 0.15); border: 1px solid #3498db; color: #54b4f3; padding: 6px 18px; border-radius: 20px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; font-weight: bold; margin-bottom: 20px; }
+        .admin-login-btn { background: #242b3d; border: 1px solid #3a4763; color: #a2b4d0; padding: 12px 24px; border-radius: 8px; font-size: 15px; cursor: pointer; display: block; margin: 0 auto 20px auto; font-weight: 500; width: calc(100% - 30px); max-width: 400px; box-sizing: border-box; }
+        .admin-panel { background: #131926; border: 1px solid #1f293d; border-radius: 12px; padding: 20px; margin: 0 15px 25px 15px; display: none; box-sizing: border-box; }
+        .panel-title { font-size: 14px; color: #8e9bb0; margin-bottom: 8px; font-weight: 500; }
+        select { width: 100%; background: #1c2333; color: #fff; border: 1px solid #2e3a54; padding: 14px; border-radius: 8px; font-size: 16px; outline: none; margin-bottom: 18px; -webkit-appearance: none; appearance: none; box-sizing: border-box; }
+        .status-btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; color: #fff; }
+        .btn-clear { background: #24b24b; }
+        .btn-uav-warn { background: #e5b800; color: #000; }
+        .btn-uav-danger { background: #df7e00; }
+        .btn-uav-alarm { background: #d63025; }
+        .btn-rocket { background: #963ec7; }
+        .btn-logout { background: #475569; font-size: 14px; padding: 10px; margin-top: 10px; justify-content: center; }
+        .btn-apply { background: #24b24b; color: #fff; font-size: 17px; padding: 16px; border: none; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; box-shadow: 0 4px 14px rgba(36,178,75,0.3); margin-top: 15px; display: block; text-align: center; box-sizing: border-box; }
+        .grid-container { display: flex; flex-direction: column; gap: 14px; padding: 0 15px; box-sizing: border-box; }
+        .region-card { background: #131926; border-left: 5px solid #24b24b; border-radius: 0 10px 10px 0; padding: 16px 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); transition: border-left-color 0.3s; box-sizing: border-box; }
+        .region-name { font-size: 18px; font-weight: bold; color: #24b24b; margin-bottom: 6px; transition: color 0.3s; }
+        .region-status { font-size: 15px; color: #a2b4d0; display: flex; align-items: center; gap: 6px; font-weight: 500; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🚨 ИНФОРМАТОР ОПАСНОСТИ БПЛА</h1>
+        <div class="online-badge">👥 На сайте онлайн: <span id="user-online">1</span></div>
+        <button class="admin-login-btn" id="login-trigger">⚙️ Вход для Администратора</button>
+    </div>
+
+    <div class="admin-panel" id="control-box">
+        <div class="panel-title">Выберите область РП:</div>
+        <select id="region-selector"></select>
+        
+        <div class="panel-title">Сменить статус режима:</div>
+        <button class="status-btn btn-clear" onclick="selectMode('Все спокойно', '🟢', '#24b24b')">Все спокойно <span>🟢</span></button>
+        <button class="status-btn btn-uav-warn" onclick="selectMode('Внимание по БПЛА', '🟡', '#e5b800')">Внимание по БПЛА <span>🟡</span></button>
+        <button class="status-btn btn-uav-danger" onclick="selectMode('Опасность по БПЛА', '🟠', '#df7e00')">Опасность по БПЛА <span>🟠</span></button>
+        <button class="status-btn btn-uav-alarm" onclick="selectMode('Тревога по БПЛА', '🔴', '#d63025')">Тревога по БПЛА <span>🔴</span></button>
+        <button class="status-btn btn-rocket" onclick="selectMode('Ракетная опасность', '🟣', '#963ec7')">Ракетная опасность <span>🟣</span></button>
+        <button class="status-btn btn-logout" id="logout-trigger">🔒 Выйти из панели</button>
+        <button class="btn-apply" id="broadcast-trigger">Применить изменения</button>
+    </div>
+
+    <div class="grid-container" id="cards-wrapper"></div>
+
+<script type="text/javascript">
+  const dbUrl = "https://firebasedatabase.app";
+  
+  const fullRegionList = [
+    "Северомеррорская Область", "Южно-Меррорская Область", "Северно-Рокфордовская Республика",
+    "Севефордовская республика", "Рокфордовская область", "Южно-Рокфордовская область",
+    "Филиппийская область", "Бирам", "Бурния", "Герния", "Рейкьявия", "Нордвелия",
+    "Саинтская область", "Токийская область", "Пертовская область", "Ларнакавская область",
+    "Никосийский район", "Скоперос", "Воинская область", "Пустынная область",
+    "Изориланская область", "Пафоская область"
+  ];
+
+  let pvoState = {};
+
+  // Предзаполняем базовые статусы, чтобы области вывелись на экран СРАЗУ
+  fullRegionList.forEach(name => {
+    pvoState[name] = { text: "Все спокойно", emoji: "🟢", color: "#24b24b" };
+  });
+
+  document.getElementById('login-trigger').addEventListener('click', function() {
+    const key = prompt("Введите секретный ключ администратора:");
+    if (key === '1234') { 
+      document.getElementById('control-box').style.display = 'block';
+      document.getElementById('login-trigger').style.display = 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (key !== null) {
+      alert("Неверный секретный ключ!");
+    }
+  });
+
+  document.getElementById('logout-trigger').addEventListener('click', function() {
+    document.getElementById('control-box').style.display = 'none';
+    document.getElementById('login-trigger').style.display = 'block';
+  });
+
+  function buildInterface() {
+    const selector = document.getElementById('region-selector');
+    const wrapper = document.getElementById('cards-wrapper');
+    if (!selector || !wrapper) return;
+    
+    if (selector.children.length === 0) {
+      fullRegionList.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.innerText = name;
+        selector.appendChild(option);
+      });
+    }
+
+    wrapper.innerHTML = "";
+    fullRegionList.forEach((name, idx) => {
+      const card = document.createElement('div');
+      card.className = 'region-card';
+      card.id = 'card-index-' + idx;
+      card.style.borderLeftColor = pvoState[name].color;
+      card.innerHTML = `
+        <div class="region-name" style="color: ${pvoState[name].color}">${name}</div>
+        <div class="region-status">
+          <span class="status-text">${pvoState[name].text}</span>
+          <span class="status-emoji">${pvoState[name].emoji}</span>
+        </div>
+      `;
+      wrapper.appendChild(card);
+    });
+  }
+
+  window.selectMode = function(text, emoji, color) {
+    const selectedRegion = document.getElementById('region-selector').value;
+    if (selectedRegion && pvoState[selectedRegion]) {
+      pvoState[selectedRegion].text = text;
+      pvoState[selectedRegion].emoji = emoji;
+      pvoState[selectedRegion].color = color;
+      
+      const idx = fullRegionList.indexOf(selectedRegion);
+      const card = document.getElementById('card-index-' + idx);
+      if (card) {
+        card.style.borderLeftColor = color;
+        card.querySelector('.region-name').style.color = color;
+        card.querySelector('.status-text').innerText = text;
+        card.querySelector('.status-emoji').innerText = emoji;
+      }
+    }
+  };
+
+  document.getElementById('broadcast-trigger').addEventListener('click', function() {
+    const btn = document.getElementById('broadcast-trigger');
+    btn.innerText = "Синхронизация...";
+    btn.style.background = "#ff9500";
+
+    fetch(dbUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(pvoState)
+    })
+    .then(function(res) {
+      if (!res.ok) throw new Error("Код: " + res.status);
+      btn.innerText = "Изменения применены! 🚀";
+      btn.style.background = "#24b24b";
+      setTimeout(function() {
+        btn.innerText = "Применить изменения";
+        btn.style.background = "#24b24b";
+      }, 1500);
+    })
+    .catch(function(err) {
+      alert("Ошибка отправки: " + err.message + "\nУбедитесь, что правила базы Firebase открыты!");
+      btn.innerText = "Применить изменения";
+      btn.style.background = "#24b24b";
+    });
+  });
+
+  function listenLiveUpdates() {
+    fetch(dbUrl)
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data) {
+          let hasChanges = false;
+          fullRegionList.forEach((name) => {
+            const remoteRegion = data[name];
+            if (remoteRegion) {
+              if (!pvoState[name] || pvoState[name].text !== remoteRegion.text || pvoState[name].emoji !== remoteRegion.emoji) {
+                pvoState[name] = remoteRegion;
+                hasChanges = true;
+              }
+            }
+          });
+          if (hasChanges) {
+            buildInterface();
+          }
+        }
+      })
+      .catch(function(err) { console.log(err); });
+  }
+
+  // Принудительно строим интерфейс сразу при старте
+  buildInterface();
+  setInterval(listenLiveUpdates, 2000);
+  listenLiveUpdates();
+</script>
+
+</body>
+</html>
